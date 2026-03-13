@@ -3,3 +3,5 @@ scikit-learn==1.7.2
 numpy
 gensim
 pyLDAvis
+sqlite3
+arkindex_export
