@@ -1,14 +1,11 @@
-# NLP Lab on text classification
+# Topic Modeling and temporal evolution
 
-## if you want to run the notebook locally
+## create venv
 
-* clone the code:
-   *  with a ssh key : ```git clone git@github.com:Deep-NLP-Course/nlp-lab-text-classification.git```
-   *  without a ssh key : ```git clone https://github.com/Deep-NLP-Course/nlp-lab-text-classification.git```
-* create a virtual environment: ```virtualenv -p python3 nlp-env```
-* activate the virtual env: ```source nlp-env/bin/activate```
+* create a virtual environment: ```virtualenv -p python3 venv```
+* activate the virtual env: ```venv/Scripts/activate```
 * install the required packages:  ```pip install -r requirements.txt```
-* register the virtualenv with jupyter: ``` python -m ipykernel install --name=nlp-env ```
+* register the virtualenv with jupyter: ``` python -m ipykernel install --name=venv ```
 * run jupyter: ```jupyter notenook```
 * run the notebook and change the kernel to nlp-env
 * start coding
