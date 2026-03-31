@@ -1,4 +1,5 @@
 # Topic Modeling and temporal evolution
+This project analyse the Archelec corpus under the spectrum of topic modelling and temporal evolution.
 
 ## create venv
 
@@ -9,12 +10,3 @@
 * run jupyter: ```jupyter notenook```
 * run the notebook and change the kernel to nlp-env
 * start coding
-
-## if you want to use Google Colab
-
-* log in https://colab.research.google.com/
-* in the File menu, Open notebook -> Github
-* copy/paste the github URL
-*  open the notebook file and start coding
-*  upload the data files in `/content/`if needed
-
