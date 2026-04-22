@@ -8,6 +8,7 @@ candidate_info = pd.read_csv('data/archelect_search.csv')
 path = os.getcwd() + '/data/'
 text_extracted = pd.DataFrame(columns=['id', 'text'])
 for folder in os.listdir(path):
+    print(folder)
     if "." not in folder:
         for file in os.listdir(path + folder):
             with open(path + folder + '/' + file, encoding="utf-8") as f:
