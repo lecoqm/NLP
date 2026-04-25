@@ -1,6 +1,8 @@
 # Specific
 .venv/
-data/
+data/*
+!data/mandats_correspondance.csv
+!data/partis_correspondance.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
