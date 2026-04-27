@@ -3,6 +3,7 @@ import re
 import argparse
 from pathlib import Path
 import pandas as pd
+import unicodedata
 
 
 DEFAULT_TEXT_COLUMNS = [
@@ -34,6 +35,7 @@ def clean_text(text):
         return ""
 
     text = str(text)
+    text = unicodedata.normalize("NFC", text)
 
     # Recoller les mots coupés en fin de ligne
     text = _HYPHEN_RE.sub("", text)
@@ -44,6 +46,18 @@ def clean_text(text):
 
     # Normalisation des espaces horizontaux
     text = _SPACES_RE.sub(" ", text)
+
+    # Pour le problème de stopword
+    pattern = r"\b[ée]lections?\s+[lLÉéEè]gislatives?\b"
+
+    text = re.sub(
+        pattern,
+        "elections legislatives",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    text = text.replace("à", "a").replace("À", "A")
 
     # Filtrage ligne par ligne
     cleaned_lines = []
