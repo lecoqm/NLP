@@ -48,7 +48,7 @@ def clean_text(text):
     text = _SPACES_RE.sub(" ", text)
 
     # Pour le problème de stopword
-    pattern = r"\b[ée]lections?\s+[lLÉéEè]gislatives?\b"
+    pattern = r"\b[ée]lections?\s+[lL][ÉéEè]gislatives?\b"
 
     text = re.sub(
         pattern,

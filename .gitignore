@@ -3,6 +3,8 @@
 data/*
 !data/mandats_correspondance.csv
 !data/partis_correspondance.csv
+!data/stop_word_fr.txt
+!data/stop_word_fr_pol.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
