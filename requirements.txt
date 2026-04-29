@@ -14,3 +14,4 @@ nbformat>=4.2.0
 matplotlib
 bertopic
 datetime
+sentence_transformers
