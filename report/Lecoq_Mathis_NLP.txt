@@ -1,0 +1,522 @@
+\documentclass{article}
+
+\usepackage[main, final]{neurips_2026}
+
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{xcolor}         % colors
+
+\usepackage{natbib}         % bibliography
+\usepackage{graphicx}       % figures
+\usepackage{array}          % For the tables
+\usepackage{subcaption}     % For subfigures
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\title{NLP project: Topic Modeling \& Temporal Evolution }
+
+\author{
+  Mathis Lecoq
+}
+
+
+\begin{document}
+
+
+\maketitle
+
+
+\begin{abstract}
+  This project studies the thematic structure and temporal evolution of French legislative manifestos between 1973 and 1993. Using a corpus of candidate-level electoral documents, we first identify broad lexical categories in the data, then apply topic modelling methods to compare the discourse of left-wing political groups. LDA models show that the far-left, the left, and the centre-left differ in their thematic priorities: the far-left is mainly structured around communist values and workers' issues, the left combines presidential legitimation with programmatic themes, and the centre-left emphasizes economic management, candidate credibility, and party alliances. BERTopic's Topics over Time approach further shows that these themes evolve with electoral context, especially around the 1981 presidential victory of François Mitterrand and the later ideological changes of the left. Overall, the results suggest that electoral manifestos can be used to measure both thematic specialization and temporal adaptation in political discourse.
+\end{abstract}
+
+\paragraph{Disclaimer:} part of this work has been realized with the cooperation of fellow student Arthur Leroudier. We worked together to adapt the dataset and select the models. However we employed them to different ends. 
+
+\section{Introduction and literature review}
+
+Automated analysis of political texts belongs to a broader literature on “text as data” methods, which aim to quantitatively measure the priorities, positions, and discursive strategies of political actors \citep{textasdata}. Electoral programs are a key source for this type of analysis, as illustrated by the Manifesto Project, which manually codes party manifestos into thematic categories in order to measure partisan priorities \citep{lehmann2025manifesto}. This project led to several studies, like how citizens withdraw their support for political parties that have failed to turn their pre-election pledges into tangible policies \citep{matthiess2024retrospective}. 
+
+This project relies on a corpus of political manifestos from the French legislative elections between 1973 and 1993, excluding the 1986 election \citep{bougon2023archelec}. The dataset contains the manifesto of each candidate in each constituency, offering a rich source of candidate-level political communication. Unlike national party platforms, these texts capture both national campaign themes and more localized concerns. Furthermore, candidates may also react to their opponents in their manifestos, which is probably less prevalent in party manifestos. On the contrary they can avoid it and focus on their own thematics to have \emph{issue ownership} \citep{stubager2018issue}. Or even refer to the President of the Republic, a key figure in the semi-presidential system in France. 
+
+The longitudinal nature of the data allows us to analyse how political themes evolve over time and how parties adapt
+their discourse to changing electoral contexts. While the number of manifestos in each side allows us to really compare the priorities of each party. These points also lead to challenges: the manifestos may differ in rhetorical style, in local specificity, in lexical choices. And the long time span may lead to the appearance of new topics and the disappearance of others. We will focus ourself on defining broad categories that encompass all topics across the political spectrum. And how parties use these categories depending on the context. 
+
+For this analysis, we will use different NLP techniques. We will begin with words frequency for our first observation (Section 2). We will then focus ourself on left-wing parties (centre-left, left, far-left) for a deeper analysis with topic modelling methods (presented in Section 3). We will first make a global analysis over these political groups (Section 4), and then anaylse the temporal evolution of the topics (Section 5).
+
+\section{Data presentation, initial data analysis}
+
+\subsection{Data preparation}
+
+The corpus is composed of 21,167 manifestos spanning 5 elections, with on average 692 words per manifesto. For each text we have information about its context and the candidate. The variables are presented in annex~\ref{sec:var_available}. As we want to evaluate topic evolution across parties, we are interested in the variables \emph{date} and \emph{titulaire-soutien}, which correspond to the party affiliated with the candidate. However a lot of political party are present, and they may change names across the 20 years spanned by the corpus. So we reordered them into 12 political groups: independent/micro-party, ecologist, autonomist, specific cause, far-left, left, center-left, center, center-right, liberal right, gaullist right, and far-right. 
+
+We removed some artefacts from the texts, and used a list of stop words to remove the common but unimportant words from the analysis. But we had to complete the list with words from the election context, otherwise we had to many words with no meaning in the context of our analysis as they just refer to the election context, like ``politique'', ``candidat'', or ``député'', as shown in figure~\ref{fig:wordcloud}.
+
+
+\begin{figure}[h]
+    \centering
+
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/wordcloud_without.png}
+        \caption{with classic stop words}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/wordcloud_with.png}
+        \caption{adding specific stop words}
+    \end{subfigure}
+
+    \caption{Global wordclouds on the whole dataset.}
+    \label{fig:wordcloud}
+\end{figure}
+
+\subsection{Global analysis}
+
+Based on analysis of the top 50 words and 50 pairs of words (which are presented in Annex~\ref{sec:top_words}), we can observe that candidates do not only present their programs and ideologies, but also situate their discourse within a broader electoral, institutional, and social context. 5 broad categories are observed and are presented in Table~\ref{tab:broad_topic}.
+
+\begin{table}[h]
+  \caption{Presentation of the broad categories}
+  \label{tab:broad_topic}
+  \centering
+  \small
+  \begin{tabular}{p{0.22\linewidth}p{0.38\linewidth}p{0.30\linewidth}}
+    \toprule
+    Category & Description & Associated words \\
+    \midrule
+    \texttt{Party and coalition} & References to parties, alliances and major political actors & gauche, front national, union gauche, François Mitterrand \\
+    \midrule
+    \texttt{Candidate legitimation} & References to close high level political figures and to current/previous mandates & François Mitterrand, Giscard d'Estaing, maire, conseiller régional \\
+    \midrule
+    \texttt{Political program} & References to their political program & pouvoir d'achat, services publics, chômage, allocations familiales \\
+    \midrule
+    \texttt{Social groups} & References to specific social groups and address them & femmes, enfants, petits commerçants, travailleurs \\
+    \midrule
+    \texttt{Values, collective identity} & References to common values and identity with voters & liberté, progrès, france, changer vie \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+
+\subsection{First temporal evolution: words frequency}
+
+To first show that politician adapt their topics across time and elections, we first use a first analysis on the frequency of some words. We use term frequency-inverse document frequency (TF-IDF) method in order to compare the relative frequency of each word for different political groups. 
+
+\begin{figure}[h]
+    \centering
+
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/majorite.png}
+        \caption{majorité}
+        \label{fig:majorite}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/president.png}
+        \caption{président}
+        \label{fig:president}
+    \end{subfigure}
+
+    \vspace{0.4cm}
+
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/travail.png}
+        \caption{travail}
+        \label{fig:travail}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/armee.png}
+        \caption{armée}
+        \label{fig:armee}
+    \end{subfigure}
+
+    \caption{TF-IDF evolution of left-wing and right-wing parties for:}
+    \label{fig:TFIDF_evo}
+\end{figure}
+
+Figure~\ref{fig:TFIDF_evo} shows the evolution of 4 words for left-wing (Extrême-gauche, Gauche, Centre gauche) and right-wing (Extrême-droite, Droite, Centre droit) parties. We can clearly see a surge in the terms ``majorité'' and ``président'' in 1981 and 1988 for left-wing parties. This correspond to the legislative elections took place just after the elections of François Mitterrand, a left-wing politician, to presidency. So left-wing candidates used it as a way to legitimize themself and rally opinion. And on the contrary passed less time with programmatic propositions, as we can see with the decrease in the term ``travail''. We observe the opposite dynamic for right-wing politician for the word ``majorité''\footnote{Except in 1981, but this can be explained by being the first transfer of power from the Right to the Left in the fifth Republic: majoritarian logic was not fully implemented.}: once again they capitalize on the political situation and focus less on programmatic propositions. 
+
+However candidates still express political opinions and are not just trying to please electors, but still express their ideology. For example, the word ``président'' continues to appear in 1981 and 1988 in right-wing parties. This can be explained by the greater importance the figure of the president plays on the Right compared to the Left. 
+
+Candidates also adapt their program to new situations in the world. For example the fall of the Soviet Union in the early 90s led to program changes in right-wings parties, which appears clearly with a spike in 1993 on Figure~\ref{fig:armee}. 
+
+Finally parties also react to topics pushed by their opponents. Figure~\ref{fig:TFIDF_evo2} shows that the apparition of ecologist parties, with a specialization on some subject, like the nuclear, forces other parties to align themself on this subject. Ecologists who are forced to talk less about this issue in 1993 and react to the creation of a focus group about hunting (\emph{Chasse, pêche, nature et traditions} in 1989).
+
+\begin{figure}[h]
+    \centering
+
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=0.93\linewidth]{images/nucleaire.png}
+        \caption{nucléaire}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/chasse.png}
+        \caption{chasse}
+    \end{subfigure}
+
+    \caption{TF-IDF evolution of left-wing, right-wing, ecologist parties, and focus group for:}
+    \label{fig:TFIDF_evo2}
+\end{figure}
+
+\section{Models presentation}
+
+To analyse the thematic structure of the corpus, we rely on two complementary topic modelling approaches: Latent Dirichlet Allocation (LDA) \citep{blei2003latent} applied separately to political groups, and BERTopic’s Topics over Time approach to study temporal evolution \citep{grootendorst2022bertopic}. LDA is a probabilistic unsupervised model that represents each document as a mixture of latent topics, and each topic as a distribution over words. In our analysis, estimating separate LDA models for each political group allows us to identify the main themes emphasized by each side of the political spectrum. This approach is relatively simple to implement and easy to interpret through the most probable words associated with each topic. However, it also has limitations: since models are estimated independently for each group, the resulting topics are not always directly comparable across groups, and their interpretation remains partly subjective.
+
+To study temporal evolution, we complement LDA with BERTopic’s dynamic topic modelling functionality, known as Topics over Time. BERTopic differs from traditional LDA-based models because it relies on transformer-based document embeddings, clustering, and class-based TF-IDF (c-TF-IDF) to generate interpretable topics. In the Topics over Time approach, the model is first fitted on the whole corpus without explicitly taking time into account. Then, for each topic and each time period, BERTopic recalculates the c-TF-IDF representation in order to observe how the vocabulary associated with a topic changes over time. This is particularly relevant for our corpus, which covers several legislative elections between 1973 and 1993, because it allows us to track the evolution of political themes across elections while keeping a global topic structure. Its main advantage is that it captures semantic similarity more effectively than purely word-frequency-based models and provides a practical way to analyse temporal changes in topic representations.
+
+As BERTopic is modelled on the English language and the texts of the corpus are in French, we used a modified model for the embeddings called ``camemBERT'' \citep{Martin_2020}.
+
+\section{Global analysis over political groups}
+
+We restrained ourselves to centre-left, left, and far-left parties. They are close ideologically while having different places and strategies on the political spectrum. The far-left is specialized in one subject; the left is composed one political party of government; the centre-left is composed of small parties which use local bastions and alliances to have power.
+
+In this section, we focus on the three left-wing political groups: the far-left, the left, and the centre-left. For each group, we estimate a separate LDA model in order to identify the main thematic structures inside each political family. We changed the number of topics for each group to best fit them.  This choice reflects the fact that the thematic structure of each group is not equally complex. The left is best depicted with 8 topics (Figure~\ref{fig:gauche}) as its discourse combines governmental, ideological, programmatic, international and local dimensions. While the far-left (Figure~\ref{fig:eg}) only needs 5, as its discourse is focused on workers and defending their rights. And the centre-left (Figure~\ref{fig:cg}) has 6 topics and is mainly focus the macro-economy and the relation between citizen and politics. 
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/LDA_gauche.png}
+    \caption{Topics present on the left (with LDA)}
+    \label{fig:gauche}
+\end{figure}
+
+Focusing on the left, we can see that topics in the \emph{political program} category compose less than half of the words present in the text. Furthermore the first two topics are not linked to ideology. They first push unifying values and François Mitterrand (the left candidate to the presidency and president during the period of this study), and describe the alliance and broad values of the left. This shows the importance of the presidential election in France: the goal during the legislative is to confirm the victory of the president. So candidates on the side of the president will align themself behind the president, hopping to use its dynamic, and push broad values to avoid alienating any voters.  
+
+However topics in the \emph{political program} category are still important. Furthermore they are diverse as we have economy: ``travail'', ``retraite'', ``entreprises'', international affairs: ``monde'', ``europe'', and societal program: ``femmes'', ``nucléaires''. This signal that these parties are government parties that should cover large subjects. This is also reinforced by the highlight on the previous experience of candidates: ``maire'', ``conseiller général''.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/LDA_eg.png}
+    \caption{Topics present on the far-left (with LDA)}
+    \label{fig:eg}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/LDA_cg.png}
+    \caption{Topics present on the centre-left (with LDA)}
+    \label{fig:cg}
+\end{figure}
+
+The two other groups also promote their program for less than half their manifesto. However the structure of their topic diverges: the far-left is focused on promoting communist values, workers rights and addressing directly the workers: ``communisme'', ``gauche'', ``travailleurs, traivailleuses'', ``lutte''. While the centre-left focus on promoting the experience of their candidate: ``maire'', ``conseiller'' and their parties organisation and alliances.
+
+This is coherent with their place on the political spectrum: the far-left tries to impose new ideas in the political scene while the centre-left try to exist thanks to local implementation and alliance between the left and other centrist parties. 
+
+However a temporal analysis in needed to confirm these results. For example if left candidates really tried to benefit from the president's dynamic, then we should observe a pic with the topic unifying values in 1981 and 1988 and more political program the other years. 
+
+\section{Temporal evolution}
+
+In order to compute the topics temporal evolution, we use BERTopic. This method is different from a LDA, which means that the number of topics generated and the topic themself may differ, as this method may group words in different ways. However the result are not significantly different from the previous analysis, which also confirms both methods as valid.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/BERT_left.png}
+    \caption{Topics present on the left (with BERTopic)}
+    \label{fig:bert_g}
+\end{figure}
+
+Figure~\ref{fig:bert_g} clearly demonstrates that candidates adapt their manifestos to the electoral situation. The win of François Mitterrand in 1981 led to a sharp increase in the \emph{organisation} topic as candidates want to align themself with the new president. And on the contrary topic about \emph{workers right} is greatly reduced during the 1981 election and even disappear during the 1988 one. But it rises again the its former level in 1993, when the dynamic of the president had disappeared. We can also see that the previous experience of the candidate are less emphasize in 1988 and 1993. Maybe because the party gained legitimacy during that time. Finally the \emph{call to workers} topic is constantly decreasing. Maybe due to ideological shift in the party (the austerity turn in 1983), or in an objective to appeal to a larger public.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/BERT_eleft.png}
+    \caption{Topics present on the far-left (with BERTopic)}
+    \label{fig:bert_eg}
+\end{figure}
+
+We can clearly see the ideological consistence of the far-left: their main topics and ideas is constant during this period (Figure~\ref{fig:bert_eg}. Furthermore they have really limited topics again. Their only other topic concerns \emph{organisation and unions}. We can see a spike in 1978, which continues a bit in 1981. This correspond to the union between the communist party (the main far-left party) and the socialist party in 1978, which continued in 1981.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{images/BERT_cleft.png}
+    \caption{Topics present on the centre-left (with BERTopic)}
+    \label{fig:bert_cg}
+\end{figure}
+
+Finally the centre-left treads allows us to see how ideology may change inside a group (Figure~\ref{fig:bert_cg}). Here two main pragmatic topics are shown. We observe a decline for the topic \emph{economy} and a steady rise for the topic \emph{administrative issue}. We can also see a rise in the topic \emph{union} in 1981, as the centre-left also want to use the dynamic from the presidential election to their advantage.
+
+\section{Conclusion}
+
+This project aimed to study the thematic structure and temporal evolution of French legislative manifestos between 1973 and 1993. Using a corpus of candidate-level electoral documents, the analysis shows that political manifestos are not only programmatic texts. They also contain references to electoral strategy, candidate legitimacy, party alliances, collective values, and specific social groups. 
+
+The temporal analysis confirms that these topics are not stable across elections. BERTopic's Topics over Time approach shows that the left strongly adapts its discourse to the electoral context. In particular, the 1981 election appears as a turning point: after François Mitterrand's presidential victory, topics related to the organisation and values of the left become much more frequent. At the same time, direct appeals to workers decline over the period, possibly reflecting both strategic moderation and ideological transformation after the 1983 austerity turn. By contrast, the far-left remains more ideologically stable, with communist values and programmatic references dominating across the whole period. The centre-left follows another trajectory, with a decline in economic and organisational topics and a gradual rise of administrative and institutional issues.
+
+Overall, the results support the central assumption of the project: electoral manifestos can be used to measure both thematic propensity and partisan specialization. Topic modelling makes it possible to identify the main themes associated with each political group, while temporal modelling reveals how these themes respond to political events, electoral incentives, and broader historical change. The analysis also highlights the value of candidate-level data. Unlike national party platforms, these manifestos combine national political narratives with local candidate legitimation, which makes them particularly useful for studying how party discourse is adapted in concrete electoral contexts.
+
+Future work could extend this analysis in several directions. A first extension would be to estimate a common topic model across all political groups in order to compare topic prevalence more directly and issue ownership. Finally, candidate-level metadata could be used more systematically to examine whether incumbents, local officeholders, or newcomers emphasize different topics within the same party.
+
+\section{Data availability statement}
+
+All the code used for this project can be found at: 
+
+\href{https://github.com/lecoqm/NLP}{https://github.com/lecoqm/NLP}
+
+The transcripts can be found at:
+
+\href{https://gitlab.teklia.com/ckermorvant/arkindex_archelec}{https://gitlab.teklia.com/ckermorvant/arkindex\_archelec}
+
+The metadata can be found at:
+
+\href{https://archelec.sciencespo.fr/explorer}{https://archelec.sciencespo.fr/explorer}
+
+\bibliographystyle{apalike}
+\bibliography{references}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\appendix
+
+\section{Variables available}~\label{sec:var_available}
+
+This appendix describes the variables available for each manifesto in the dataset. Each row corresponds to one electoral document associated with a candidate in a given constituency and election round. The variables include document metadata, electoral context, geographical information, and biographical or political information about the main candidate and the substitute candidate.
+
+\begin{table}[h]
+  \caption{Document and election metadata variables.}
+  \label{tab:document-election-variables}
+  \centering
+  \small
+  \begin{tabular}{p{0.32\linewidth}p{0.58\linewidth}}
+    \toprule
+    Variable & Description \\
+    \midrule
+    \texttt{id} & Unique identifier of the manifesto document. \\
+    \texttt{date} & Date associated with the election or electoral round. \\
+    \texttt{subject} & General subject tags describing the document, such as election type, country, and institutional context. \\
+    \texttt{title} & Full title of the document, usually including the election year, department, constituency, candidate name, and round. \\
+    \texttt{contexte-election} & Type of election, for example legislative election or partial legislative election. \\
+    \texttt{contexte-tour} & Election round associated with the manifesto. \\
+    \texttt{cote} & Archival or collection reference assigned to the document. \\
+    \texttt{images} & URL or list of URLs pointing to the scanned images of the manifesto. \\
+    \texttt{pdf} & URL pointing to the PDF version of the manifesto. \\
+    \texttt{ocr\_url} & URL pointing to the OCR text extracted from the manifesto. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[h]
+  \caption{Geographical and constituency variables. These variables locate each manifesto within the French electoral geography.}
+  \label{tab:geographical-variables}
+  \centering
+  \small
+  \begin{tabular}{p{0.32\linewidth}p{0.58\linewidth}}
+    \toprule
+    Variable & Description \\
+    \midrule
+    \texttt{departement} & Department code associated with the constituency. \\
+    \texttt{departement-nom} & Name of the French department. \\
+    \texttt{departement-insee} & INSEE department code and department name. \\
+    \texttt{identifiant de circonscription} & Constituency identifier within the department. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[h]
+  \caption{Main candidate variables. These variables describe the main candidate associated with each manifesto.}
+  \label{tab:main-candidate-variables}
+  \centering
+  \small
+  \begin{tabular}{p{0.32\linewidth}p{0.58\linewidth}}
+    \toprule
+    Variable & Description \\
+    \midrule
+    \texttt{titulaire-nom} & Last name of the main candidate. \\
+    \texttt{titulaire-prenom} & First name of the main candidate. \\
+    \texttt{titulaire-sexe} & Gender of the main candidate. \\
+    \texttt{titulaire-age} & Age or year of birth as mentioned in the document. \\
+    \texttt{titulaire-age-calcule} & Calculated age of the main candidate. \\
+    \texttt{titulaire-age-tranche} & Age group of the main candidate. \\
+    \texttt{titulaire-profession} & Profession or occupational status of the main candidate. \\
+    \texttt{titulaire-mandat-en-cours} & Current political mandates held by the main candidate. \\
+    \texttt{titulaire-mandat-passe} & Former political mandates held by the main candidate. \\
+    \texttt{titulaire-associations} & Associations or organizational affiliations mentioned for the main candidate. \\
+    \texttt{titulaire-autres-statuts} & Other statuses mentioned for the main candidate, such as veteran, resistant, retired, or similar categories. \\
+    \texttt{titulaire-soutien} & Political support or party endorsement of the main candidate. \\
+    \texttt{titulaire-liste} & Electoral list or political list associated with the main candidate. \\
+    \texttt{titulaire-decorations} & Decorations or honors mentioned for the main candidate. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[h]
+  \caption{Substitute candidate variables. These variables describe the substitute candidate associated with each manifesto.}
+  \label{tab:substitute-candidate-variables}
+  \centering
+  \small
+  \begin{tabular}{p{0.32\linewidth}p{0.58\linewidth}}
+    \toprule
+    Variable & Description \\
+    \midrule
+    \texttt{suppleant-nom} & Last name of the substitute candidate. \\
+    \texttt{suppleant-prenom} & First name of the substitute candidate. \\
+    \texttt{suppleant-sexe} & Gender of the substitute candidate. \\
+    \texttt{suppleant-age} & Age or year of birth as mentioned for the substitute candidate. \\
+    \texttt{suppleant-age-calcule} & Calculated age of the substitute candidate. \\
+    \texttt{suppleant-age-tranche} & Age group of the substitute candidate. \\
+    \texttt{suppleant-profession} & Profession or occupational status of the substitute candidate. \\
+    \texttt{suppleant-mandat-en-cours} & Current political mandates held by the substitute candidate. \\
+    \texttt{suppleant-mandat-passe} & Former political mandates held by the substitute candidate. \\
+    \texttt{suppleant-associations} & Associations or organizational affiliations mentioned for the substitute candidate. \\
+    \texttt{suppleant-autres-statuts} & Other statuses mentioned for the substitute candidate. \\
+    \texttt{suppleant-soutien} & Political support or party endorsement of the substitute candidate. \\
+    \texttt{suppleant-liste} & Electoral list or political list associated with the substitute candidate. \\
+    \texttt{suppleant-decorations} & Decorations or honors mentioned for the substitute candidate. \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\clearpage
+
+\section{Top 50 words and pairs of words}\label{sec:top_words}
+
+\begin{table}[h]
+  \caption{Most frequent unigrams and bigrams in the corpus. The two tables report the top 50 words and top 50 word pairs with their number of occurrences.}
+  \label{tab:top-words-bigrams}
+  \centering
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \renewcommand{\arraystretch}{0.85}
+
+  \begin{subtable}{0.48\linewidth}
+    \centering
+    \caption{Top 50 words}
+    \label{tab:top-words}
+    \begin{tabular}{lr}
+      \toprule
+      Word & Count \\
+      \midrule
+      gauche & 39968 \\
+      france & 37665 \\
+      travailleurs & 30682 \\
+      français & 29498 \\
+      vie & 26956 \\
+      majorité & 25580 \\
+      faut & 25236 \\
+      pays & 24768 \\
+      travail & 21364 \\
+      nationale & 20352 \\
+      socialiste & 20307 \\
+      suppléant & 20238 \\
+      être & 19602 \\
+      programme & 19504 \\
+      député & 19421 \\
+      communiste & 19372 \\
+      pouvoir & 18951 \\
+      gouvernement & 18595 \\
+      tour & 16747 \\
+      sociale & 16590 \\
+      national & 16154 \\
+      conseiller & 15684 \\
+      république & 15514 \\
+      chômage & 15212 \\
+      maire & 15208 \\
+      mitterrand & 15095 \\
+      confiance & 14592 \\
+      société & 14522 \\
+      été & 14473 \\
+      même & 14175 \\
+      changement & 14160 \\
+      hommes & 14086 \\
+      nouvelle & 14018 \\
+      femmes & 13742 \\
+      voix & 13720 \\
+      président & 13694 \\
+      l'union & 13502 \\
+      général & 13484 \\
+      lutte & 13342 \\
+      commun & 13330 \\
+      progrès & 13114 \\
+      liberté & 12783 \\
+      enfants & 12192 \\
+      jeunes & 12068 \\
+      droit & 12031 \\
+      économique & 12027 \\
+      française & 11899 \\
+      qu'ils & 11875 \\
+      entreprises & 11864 \\
+      j'ai & 11695 \\
+      \bottomrule
+    \end{tabular}
+  \end{subtable}
+  \hfill
+  \begin{subtable}{0.48\linewidth}
+    \centering
+    \caption{Top 50 bigrams}
+    \label{tab:top-bigrams}
+    \begin{tabular}{lr}
+      \toprule
+      Bigram & Count \\
+      \midrule
+      programme commun & 9620 \\
+      l'assemblée nationale & 7907 \\
+      front national & 7205 \\
+      conseiller général & 6720 \\
+      françois mitterrand & 6637 \\
+      communiste français & 5199 \\
+      république française & 5044 \\
+      conseiller municipal & 4861 \\
+      président république & 4753 \\
+      électrices électeurs & 4159 \\
+      député sortant & 3799 \\
+      l'union gauche & 3761 \\
+      lutte ouvrière & 3669 \\
+      justice sociale & 3546 \\
+      marié enfants & 3538 \\
+      majorité présidentielle & 3447 \\
+      travailleuses travailleurs & 3316 \\
+      sécurité sociale & 3248 \\
+      dès tour & 3218 \\
+      hommes femmes & 3152 \\
+      nouvelle majorité & 3131 \\
+      petits commerçants & 2912 \\
+      pouvoir d'achat & 2900 \\
+      progrès social & 2883 \\
+      rpr l'udf & 2837 \\
+      electrices electeurs & 2745 \\
+      gouvernement gauche & 2617 \\
+      commerçants artisans & 2599 \\
+      conseil général & 2564 \\
+      second tour & 2563 \\
+      radicaux gauche & 2495 \\
+      france unie & 2484 \\
+      hommes politiques & 2428 \\
+      lutte ouvriere & 2311 \\
+      conseiller régional & 2254 \\
+      changer vie & 2144 \\
+      cadre vie & 2134 \\
+      services publics & 2071 \\
+      adjoint maire & 2059 \\
+      forces gauche & 2057 \\
+      peine mort & 2027 \\
+      giscard d'estaing & 2024 \\
+      dimanche prochain & 2008 \\
+      d'union gauche & 1917 \\
+      allocations familiales & 1893 \\
+      qualité vie & 1832 \\
+      protection sociale & 1772 \\
+      commun gouvernement & 1731 \\
+      même temps & 1729 \\
+      ministres communistes & 1723 \\
+      \bottomrule
+    \end{tabular}
+  \end{subtable}
+\end{table}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\end{document}
