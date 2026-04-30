@@ -14,6 +14,7 @@ DEFAULT_TEXT_COLUMNS = [
     "departement",
     "identifiant de circonscription",
     "titulaire-sexe",
+    "titulaire-age",
     "titulaire-mandat-en-cours",
     "titulaire-mandat-passe",
     "titulaire-soutien",
@@ -58,6 +59,7 @@ def clean_text(text):
     )
 
     text = text.replace("à", "a").replace("À", "A")
+    text = text.replace("où", "ou")
 
     # Filtrage ligne par ligne
     cleaned_lines = []
