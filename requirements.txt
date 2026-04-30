@@ -10,4 +10,8 @@ torchvision==0.25.0
 pyLDAvis==3.4.1
 gensim==4.4.0
 numpy == 2.3.5
+nbformat>=4.2.0
 matplotlib
+bertopic
+datetime
+sentence_transformers
